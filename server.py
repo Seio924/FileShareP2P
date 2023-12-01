@@ -9,14 +9,13 @@ def handle_client(client_socket, clients):
 
         print(f"Received message from {client_socket.getpeername()}: {data}")
 
-        type = data.split(",")[0]
+        type = data.split("|")[0]
         # Check if the message is a request for another client's IP
         if type == "GET_IP":
-            client_index = int(data.split(",")[1])
-            target_ip = clients[client_index][1][0]
-            print(client_socket.getpeername())
-            print("클라이언트가 요청한 ip 보내주기" + target_ip)
-            message = "IP," + target_ip +","+ str(client_socket.getpeername())
+            client_index = int(data.split("|")[1])
+            target_ip = str(clients[client_index][1])
+            print("클라이언트가 요청한 ip 보내주기" + target_ip) #(127.0.0.1, 61223)
+            message = "IP|" + target_ip +"|"+ str(client_socket.getpeername())
             client_socket.send(message.encode('utf-8'))
 
     client_socket.close()

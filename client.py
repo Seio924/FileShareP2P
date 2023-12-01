@@ -2,7 +2,7 @@ import socket
 import threading
 
 def receive_messages(client_socket):
-    message = "GET_IP," + input("Enter index: ")
+    message = "GET_IP|" + input("Enter index: ")
     client_socket.send(message.encode('utf-8'))
     while True:
         try:
@@ -10,25 +10,29 @@ def receive_messages(client_socket):
             if not data:
                 break
 
-            type = data.split(",")[0]
+            type = data.split("|")[0]
 
             if type == "Client":
-                target_ip, msg = data.split(",")[1], data.split(",")[2]
+                target_ip, msg = data.split("|")[1], data.split("|")[2]
+                target_ip = target_ip[1:-1]
+                target_ip1, target_ip2 = target_ip.split(",")[0], target_ip.split(",")[1]
                 print(msg)
-                target_socket = connect_to_client(target_ip, 12345)
+                target_socket = connect_to_client(target_ip1, target_ip2) #(127.0.0.1, 61223)
                 message = "Client_recv,done"
                 target_socket.send(message.encode('utf-8'))
                 target_socket.close()
 
             elif type == "IP":
-                target_ip, self_ip = data.split(",")[1], data.split(",")[2]
-                target_socket = connect_to_client(target_ip, 12345)
-                message = "Client," +self_ip+ "," + input("Enter your message: ")
+                target_ip, self_ip = data.split("|")[1], data.split("|")[2] #(원하는 아이), (요청한 아이)
+                target_ip = target_ip[1:-1]
+                target_ip1, target_ip2 = target_ip.split(",")[0], target_ip.split(",")[1]
+                target_socket = connect_to_client('localhost', int(target_ip2))
+                message = "Client|" +self_ip+ "|" + input("Enter your message: ")
                 target_socket.send(message.encode('utf-8'))
-                target_socket.close()
+                """ target_socket.close() """
 
             elif type == "Client_recv":
-                msg = data.split(",")[1]
+                msg = data.split("|")[1]
                 print(msg)
 
         except ConnectionResetError:
