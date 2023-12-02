@@ -4,7 +4,7 @@ import threading
 # 서버 IP 주소와 포트
 server_ip = '127.0.0.1'
 server_port = 12345  # 사용할 포트 번호
-
+all_address = []
 
 def handle_server_connection(client_socket):
     try:
@@ -33,12 +33,37 @@ def connect_to_server(client_socket):
     except Exception as e:
         print(f"연결 에러: {e}")
         return None
+    
+def select_client(client_socket):
+    global all_address
+    connecting_client_list = []
+
+    result_message = connect_to_server(client_socket) # (주소)|(주소)
+
+    clients_address = result_message.split("|") # ("127.0.0.1", 34521)
+    all_address.append(clients_address)
+
+    #result_message split해서 받은 모든 클라이언트의 주소 가져옴
+    if len(all_address) == 4:
+        for target in all_address:
+            for i in target:
+                target_ip, target_port= i[1:-1].split(",")
+                response = connect_to_client(target_ip, int(target_port))
+                connecting_client_list.append(response) # for문 돌려서 배열에 넣기
+        
+    return connecting_client_list
 
 def connect_to_client(target_ip, target_port):
-    target_address = (target_ip, target_port)
-    target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    target_socket.connect(target_address)
-    return target_socket
+    try:
+        target_ip = target_ip[1:-1]
+        target_address = (target_ip, target_port)
+        print(target_address)
+        target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        target_socket.connect(target_address) # 여기서 대상 컴퓨터 거부 오류
+        return target_socket
+    except Exception as e:
+        print(f"Error in connect_to_client: {e}")
+        return None
 
 def get_file(client_socket):
     connecting_client_list = select_client(client_socket)
@@ -47,15 +72,16 @@ def get_file(client_socket):
         msg = "Give_file" #파일의 어느부분 달라고 하는지 정보 보내야함
         client.send(bytes(msg.encode()))
 
-    while True:
-        try:
-            response = client_socket.recv(1024) #어떤 클라이언트에게 뭐가 왔는지 메시지에 있어야함
-            print(response)
+    if connecting_client_list:  # connecting_client_list가 비어있지 않은 경우에만 while 루프 실행
+        client = connecting_client_list[0]  # 첫 번째 클라이언트를 사용
 
-            #connecting_client_list와 비교해서 모든 클라이언트에게 받았으면 종료
-            break
-        except ConnectionResetError:
-            break
+        while True:
+            try:
+                response = client.recv(1024) #어떤 클라이언트에게 뭐가 왔는지 메시지에 있어야함
+                #connecting_client_list와 비교해서 모든 클라이언트에게 받았으면 종료
+                break
+            except ConnectionResetError:
+                break
     
     
 
@@ -69,32 +95,13 @@ def give_file(conn, client_socket):
             msg = "here is the file"
             conn.send(bytes(msg.encode()))
 
-
         except ConnectionResetError:
             break
-
-
-def select_client(client_socket):
-    connecting_client_list = []
-
-    result_message = connect_to_server(client_socket) # (주소)|(주소)
-    print(result_message)
-    clients_address = result_message.split("|") # ("127.0.0.1", 34521)
-
-    #result_message split해서 받은 모든 클라이언트의 주소 가져옴
-
-    for i in clients_address:
-        target_ip, target_port= i[1:-1].split(",")
-        connecting_client_list.append(connect_to_client(target_ip, int(target_port))) # for문 돌려서 배열에 넣기
-
-    return connecting_client_list
 
 
 if __name__ == "__main__":
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-
-    
     thread1 = threading.Thread(target=get_file, args=(client_socket,))
     thread1.start()
 
