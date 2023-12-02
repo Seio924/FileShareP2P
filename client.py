@@ -1,58 +1,51 @@
 import socket
 import threading
 
-def receive_messages(client_socket):
-    message = "GET_IP|" + input("Enter index: ")
-    client_socket.send(message.encode('utf-8'))
+# 서버 주소 및 포트
+server_address = ('localhost', 5555)
+
+def send_message():
     while True:
+        print(1)
+        # 사용자로부터 메시지 입력
+        message = input("메시지를 입력하세요: ")
+        recipient_address = input("전송할 클라이언트 주소를 입력하세요 (예: 127.0.0.1:5555): ")
+        message += f",{recipient_address}"
+
+        # 서버에 메시지 전송
+        client_socket.sendall(message.encode())
+
+def receive_messages():
+    while True:
+        print(2)
         try:
-            data = client_socket.recv(1024).decode("utf-8")
+            data = client_socket.recv(1024)
             if not data:
                 break
 
-            type = data.split("|")[0]
+            print(f"[클라이언트] 서버로부터 수신한 메시지: {data.decode()}")
 
-            if type == "Client":
-                target_ip, msg = data.split("|")[1], data.split("|")[2]
-                target_ip = target_ip[1:-1]
-                target_ip1, target_ip2 = target_ip.split(",")[0], target_ip.split(",")[1]
-                print(msg)
-                target_socket = connect_to_client(target_ip1, target_ip2) #(127.0.0.1, 61223)
-                message = "Client_recv,done"
-                target_socket.send(message.encode('utf-8'))
-                target_socket.close()
-
-            elif type == "IP":
-                target_ip, self_ip = data.split("|")[1], data.split("|")[2] #(원하는 아이), (요청한 아이)
-                target_ip = target_ip[1:-1]
-                target_ip1, target_ip2 = target_ip.split(",")[0], target_ip.split(",")[1]
-                target_socket = connect_to_client('localhost', int(target_ip2))
-                message = "Client|" +self_ip+ "|" + input("Enter your message: ")
-                target_socket.send(message.encode('utf-8'))
-                """ target_socket.close() """
-
-            elif type == "Client_recv":
-                msg = data.split("|")[1]
-                print(msg)
-
-        except ConnectionResetError:
+        except Exception as e:
+            print(f"[클라이언트] 에러 발생: {e}")
             break
 
+# 서버에 연결
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect(server_address)
+print("[클라이언트] 서버에 연결")
 
-def connect_to_client(target_ip, target_port):
-    target_address = (target_ip, target_port)
-    target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    target_socket.connect(target_address)
-    return target_socket
+# 메시지 전송을 위한 쓰레드 생성
+send_thread = threading.Thread(target=send_message)
+send_thread.start()
 
-def start_client():
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(('localhost', 12345))  # Assuming the server is running on the same machine
+# 서버로부터 메시지 수신을 위한 쓰레드 생성
+receive_thread = threading.Thread(target=receive_messages)
+receive_thread.start()
 
-    # Start a thread to receive messages from the server
-    receive_thread = threading.Thread(target=receive_messages, args=(client,))
-    receive_thread.start()
+# 쓰레드 종료 대기
+send_thread.join()
+receive_thread.join()
 
-
-if __name__ == "__main__":
-    start_client()
+# 연결 종료
+print("[클라이언트] 연결 종료")
+client_socket.close()
