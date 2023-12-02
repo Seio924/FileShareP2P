@@ -1,68 +1,37 @@
 import socket
 import threading
 
-def handle_client(client_socket, address):
-    while True:
-        try:
-            data = client_socket.recv(1024)
-            if not data:
-                break
+# 서버 IP 주소와 포트
+server_ip = '서버_IP_주소'
+server_port = 12345  # 사용할 포트 번호
 
-            message, recipient_address = parse_message(data)
-            print(f"[서버] {address}로부터 수신한 메시지: {message}, 받는 클라이언트 주소: {recipient_address}")
-            print(3)
-            # 특정 클라이언트에게 메시지 전송
-            send_to_client(client_socket, message, recipient_address)
-            print(4)
-        except Exception as e:
-            print(f"[서버] 에러 발생: {e}")
-            continue  # 예외가 발생해도 계속해서 다음 클라이언트에게 메시지 전송을 시도
+def handle_client(client_socket):
+    try:
+        # 클라이언트로부터 데이터 수신 및 출력
+        data = client_socket.recv(1024)
+        print(f"수신: {data.decode()}")
 
-    print(f"[서버] {address}와의 연결 종료")
-    client_socket.close()
+        # 클라이언트에게 응답 전송
+        response = "서버에서 클라이언트로의 응답입니다."
+        client_socket.sendall(response.encode())
+    except Exception as e:
+        print(f"에러: {e}")
+    finally:
+        # 소켓 닫기
+        client_socket.close()
 
-def send_to_client(client_socket, message, recipient_address):
-    print(5)
-    print(type(recipient_address))
-    recipient_ip, recipient_port = recipient_address.split(":")[0], recipient_address.split(":")[1]
-    recipient_address = (recipient_ip, int(recipient_port))
-    print(recipient_address)
-    for client, client_address in clients:
-        print(6)
-        print(client_address)
-        if client_address == recipient_address:
-            try:
-                print(7)
-                client.sendall(message.encode())
-            except Exception as e:
-                print(f"[서버] 에러 발생: {e}")
+# 서버 소켓 생성
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((server_ip, server_port))
+server_socket.listen(5)
 
-def parse_message(data):
-    # 메시지와 받는 클라이언트 주소를 추출
-    message, recipient_address = data.decode().split(",", 1)
-    return message, recipient_address
-
-# 클라이언트 정보를 저장할 리스트
-clients = []
-
-# 서버 소켓 설정
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('0.0.0.0', 5555))
-server.listen()
-
-print("[서버] 서버 시작")
+print(f"서버가 {server_ip}:{server_port}에서 시작되었습니다.")
 
 while True:
-    try:
-        client_socket, address = server.accept()
-        print(f"[서버] {address}와의 연결 수락")
+    # 클라이언트 연결 대기
+    client_socket, client_address = server_socket.accept()
+    print(f"새로운 연결: {client_address}")
 
-        # 쓰레드 생성하여 클라이언트 핸들링
-        client_thread = threading.Thread(target=handle_client, args=(client_socket, address))
-        client_thread.start()
-
-        # 클라이언트 정보 저장
-        clients.append((client_socket, address))
-
-    except Exception as e:
-        print(f"[서버] 에러 발생: {e}")
+    # 클라이언트를 처리하는 스레드 시작
+    client_thread = threading.Thread(target=handle_client, args=(client_socket,))
+    client_thread.start()
