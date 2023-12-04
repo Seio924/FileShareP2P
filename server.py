@@ -5,19 +5,16 @@ import threading
 import random
 
 
-def client_handler(client_socket, group):
+def client_handler(client_socket, group, client_num):
     global count, client_ip, client_port
-
-    client_id = count
 
     c_list = [1, 2, 3, 4]
 
-    while True:
-        if count == 4:
-            for client in group:
-                msg = "All_Connected" + "|" + client_ip[client_ip-1] + "|" + str(client_port[client_ip-1])
-                client.send(msg.encode("utf-8"))
-            break
+    if count == 4:
+        for i, client in enumerate(group):
+            msg = "All_Connected" + "|" + client_ip[i] + "|" + str(client_port[i])
+            client.send(msg.encode("utf-8"))
+
     
     while True:
         try:
@@ -63,7 +60,7 @@ if __name__ == '__main__':
             
             print('Connected ' + str(addr))
 
-            thread = threading.Thread(target=client_handler, args=(conn, group))
+            thread = threading.Thread(target=client_handler, args=(conn, group, count))
             thread.start()
 
             
