@@ -12,7 +12,7 @@ def client_handler(client_socket, group, thread_num):
 
     if count == 4:
         for i, client in enumerate(group):
-            msg = "All_Connected" + "|" + client_ip[i] + "|" + str(client_port[i])
+            msg = "All_Connected" + "|" + client_ip[i] + "|" + str(client_port[i]) + "|" + str(i)
             client.send(msg.encode("utf-8"))
 
     print(1)

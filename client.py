@@ -2,23 +2,20 @@ import socket
 import threading
 
 
-def receive_messages(peer_connection):
-    print(111111111111111111111)
+def receive_messages(peer_connection, thread_num):
     try:
         data = peer_connection.recv(1024).decode()
-        print(22222222222222222)
         print(data)
     except Exception as e:
         print(f"Error receiving data: {e}")
 
     # 파일 보내주기
-    msg = "FILE"
+    msg = thread_num + "번이 파일을 보냈습니다."
     peer_connection.send(msg.encode("utf-8"))
-    print(4444444444)
     
     
 
-def peer_handler(client_socket, peer_connecting_sock):
+def peer_handler(client_socket, peer_connecting_sock, thread_num):
     #파일 나누고 자신한테 없는 파일들 정보 서버에게 물어보기
     msg = "Where_is"
     client_socket.send(msg.encode("utf-8"))
@@ -34,13 +31,12 @@ def peer_handler(client_socket, peer_connecting_sock):
     peer_connecting_sock.connect((target_ip, int(target_port)))
     print(2)
 
-    peer_msg = "Give_File"
+    peer_msg = thread_num + "번이 파일을 요청했습니다."
     peer_connecting_sock.send(peer_msg.encode("utf-8"))
     print(3)
 
-    # 스레드를 생성하여 receive_messages 함수 실행
-    thread_receive = threading.Thread(target=receive_messages, args=(peer_connecting_sock,))
-    thread_receive.start()
+    peer_data = peer_connecting_sock.recv(1024).decode()
+    print(peer_data)
 
 
 if __name__ == "__main__":
@@ -62,22 +58,21 @@ if __name__ == "__main__":
     print(data)
 
     #서버에게 내 아이피 주소와 포트번호를 받음
-    type, my_ip, my_port = data.split("|")
+    type, my_ip, my_port, thread_num = data.split("|")
 
     #아이피 주소와 포트번호로 다른 클라이언트가 들어오는걸 대기
     peer_sock.bind((my_ip, int(my_port)))
     peer_sock.listen(4)
 
 
-    thread_main = threading.Thread(target=peer_handler, args=(client_socket, peer_connecting_sock))
+    thread_main = threading.Thread(target=peer_handler, args=(client_socket, peer_connecting_sock, thread_num))
     thread_main.start()
 
     while True:
         # Accept connection from a client
         peer_connection, peer_address = peer_sock.accept()
-        print(3333333333333)
 
         # 스레드를 생성하여 receive_messages 함수 실행
-        thread = threading.Thread(target=receive_messages, args=(peer_connection,))
+        thread = threading.Thread(target=receive_messages, args=(peer_connection, thread_num))
         thread.start()
         
