@@ -21,11 +21,13 @@ def peer_handler(client_socket, peer_sock):
     #연결할 클라이언트 ip랑 포트번호 받기
     data = client_socket.recv(1024).decode()
 
-    target_ip, target_port = data.split("|")
+    print(data)
 
+    target_ip, target_port = data.split("|")
+    print(1)
     # 다른 클라이언트랑 연결
     peer_sock.connect((target_ip, int(target_port)))
-
+    print(2)
     peer_msg = "Give_File"
     peer_sock.send(peer_msg.encode("utf-8"))
 
@@ -44,13 +46,10 @@ if __name__ == "__main__":
 
     # 서버에 연결
     client_socket.connect((server_host, server_port))
-    print(1)
+
     
-    while True:
-        data = client_socket.recv(1024).decode()
-        if data:
-            break
-    print(2)
+    data = client_socket.recv(1024).decode()
+    
     print(data)
 
     #서버에게 내 아이피 주소와 포트번호를 받음
@@ -62,6 +61,7 @@ if __name__ == "__main__":
 
     thread_main = threading.Thread(target=peer_handler, args=(client_socket, peer_sock))
     thread_main.start()
+
 
 
 

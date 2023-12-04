@@ -5,7 +5,7 @@ import threading
 import random
 
 
-def client_handler(client_socket, group, client_num):
+def client_handler(client_socket, group, thread_num):
     global count, client_ip, client_port
 
     c_list = [1, 2, 3, 4]
@@ -15,15 +15,19 @@ def client_handler(client_socket, group, client_num):
             msg = "All_Connected" + "|" + client_ip[i] + "|" + str(client_port[i])
             client.send(msg.encode("utf-8"))
 
+    print(1)
+
     
     while True:
         try:
+            print(2)
             data = conn.recv(1024).decode()
-            
+            print(data)
             if data == "Where_is":
-                target_num = random.choice(c_list)
-                if target_num != client_id:
-                    break
+                while True:
+                    target_num = random.choice(c_list)
+                    if target_num != thread_num:
+                        break
                 print(str(target_num) + "번 클라이언트 선택")
 
                 msg = client_ip[target_num-1] + "|" + str(client_port[target_num-1])
@@ -57,10 +61,12 @@ if __name__ == '__main__':
             client_ip.append(ip)
             
             client_port.append(port)
+
+            thread_num = count
             
             print('Connected ' + str(addr))
 
-            thread = threading.Thread(target=client_handler, args=(conn, group, count))
+            thread = threading.Thread(target=client_handler, args=(conn, group, thread_num))
             thread.start()
 
             
