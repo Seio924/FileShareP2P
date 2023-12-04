@@ -4,13 +4,17 @@ import threading
 
 def receive_messages(peer_connection):
     print(111111111111111111111)
-    data = peer_connection.recv(1024).decode()
+    try:
+        data = peer_connection.recv(1024).decode()
+        print(22222222222222222)
+        print(data)
+    except Exception as e:
+        print(f"Error receiving data: {e}")
 
-    print(data)
-
-    #파일 보내주기
+    # 파일 보내주기
     msg = "FILE"
     peer_connection.send(msg.encode("utf-8"))
+    print(4444444444)
     
     
 
@@ -19,22 +23,24 @@ def peer_handler(client_socket, peer_connecting_sock):
     msg = "Where_is"
     client_socket.send(msg.encode("utf-8"))
 
-    #연결할 클라이언트 ip랑 포트번호 받기
+    # 연결할 클라이언트 ip랑 포트번호 받기
     data = client_socket.recv(1024).decode()
-
     print(data)
 
     target_ip, target_port = data.split("|")
     print(1)
+
     # 다른 클라이언트랑 연결
     peer_connecting_sock.connect((target_ip, int(target_port)))
     print(2)
+
     peer_msg = "Give_File"
     peer_connecting_sock.send(peer_msg.encode("utf-8"))
     print(3)
 
-    peer_data = peer_connecting_sock.recv(1024).decode()
-    print(peer_data)
+    # 스레드를 생성하여 receive_messages 함수 실행
+    thread_receive = threading.Thread(target=receive_messages, args=(peer_connecting_sock,))
+    thread_receive.start()
 
 
 if __name__ == "__main__":
@@ -62,16 +68,16 @@ if __name__ == "__main__":
     peer_sock.bind((my_ip, int(my_port)))
     peer_sock.listen(4)
 
+
     thread_main = threading.Thread(target=peer_handler, args=(client_socket, peer_connecting_sock))
     thread_main.start()
-
-
-
 
     while True:
         # Accept connection from a client
         peer_connection, peer_address = peer_sock.accept()
         print(3333333333333)
-        thread = threading.Thread(target=receive_messages, args=(peer_connection))
+
+        # 스레드를 생성하여 receive_messages 함수 실행
+        thread = threading.Thread(target=receive_messages, args=(peer_connection,))
         thread.start()
         
