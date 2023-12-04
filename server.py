@@ -2,43 +2,70 @@
 
 import socket
 import threading
-
-# 서버 설정
-host = "0.0.0.0"  # 모든 IP 주소에서 연결 허용
-port = 8080  # 사용할 포트 번호
+import random
 
 
-# 소켓 생성
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def client_handler(client_socket, group):
+    global count, client_ip, client_port
 
-# 소켓을 주소와 포트에 바인딩
-server_socket.bind((host, port))
+    client_id = count
 
-# 클라이언트로부터 연결 대기
-server_socket.listen(4)  # 4개의 연결을 동시에 처리
-# server_file.write("서버가 {}:{}에서 실행 중입니다.\n".format(host, port))
+    c_list = [1, 2, 3, 4]
 
+    while True:
+        if count == 4:
+            for client in group:
+                msg = "All_Connected" + "|" + client_ip[client_ip-1] + "|" + str(client_port[client_ip-1])
+                client.send(msg.encode("utf-8"))
+            break
+    
+    while True:
+        try:
+            data = conn.recv(1024).decode()
+            
+            if data == "Where_is":
+                target_num = random.choice(c_list)
+                if target_num != client_id:
+                    break
+                print(str(target_num) + "번 클라이언트 선택")
 
-# 시간을 출력 형식에 맞게 변환
-def real_time(time):
-    minute = "{}".format(time // 60)
-    second = "{}".format(time % 60)
-    result = "{}:{}".format(minute.zfill(2), second.zfill(2))
-    # 예) 3초 => 00:03 / 100초 => 01:40
-    return result
-
-
-
-def client_handler(client_socket):
-    global system_clock, result_sum, count
+                msg = client_ip[target_num-1] + "|" + str(client_port[target_num-1])
+                client_socket.send(msg.encode("utf-8"))
+                
+        except:
+            pass
 
     
 
+if __name__ == '__main__':
+    
+    HOST = "0.0.0.0"  # 수신 받을 모든 IP를 의미
+    PORT = 9000  # 수신받을 Port
+    server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # TCP Socket
+    server_sock.bind((HOST, PORT))  # 소켓에 수신받을 IP주소와 PORT를 설정
+    server_sock.listen(5)  # 소켓 연결, 여기서 파라미터는 접속수를 의미
 
-# 클라이언트와 연결 수락
-while True:
-    client_socket, client_address = server_socket.accept()
-    client_thread = threading.Thread(
-        target=client_handler, args=(client_socket)
-    )
-    client_thread.start()
+    group, client_ip, client_port = [], [], []
+    count = 0
+    
+
+    while True:
+        try:
+            count = count + 1
+            conn, addr = server_sock.accept()  # 해당 소켓을 열고 대기
+            
+            group.append(conn) #연결된 클라이언트의 소켓정보
+            ip, port = addr
+            
+            client_ip.append(ip)
+            
+            client_port.append(port)
+            
+            print('Connected ' + str(addr))
+
+            thread = threading.Thread(target=client_handler, args=(conn, group))
+            thread.start()
+
+            
+        except:
+            pass
