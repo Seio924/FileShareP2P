@@ -20,8 +20,7 @@ def client_handler(client_socket, group, thread_num):
     
     while True:
         try:
-            print(2)
-            data = conn.recv(1024).decode()
+            data = client_socket.recv(1024).decode()
             print(data)
             if data == "Where_is":
                 while True:
