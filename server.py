@@ -1,41 +1,44 @@
+# -*- coding: utf-8 -*-
+
 import socket
 import threading
 
-# 서버 IP 주소와 포트
-server_ip = '127.0.0.1'
-server_port = 12345  # 사용할 포트 번호
-g = []
+# 서버 설정
+host = "0.0.0.0"  # 모든 IP 주소에서 연결 허용
+port = 8080  # 사용할 포트 번호
 
-def handle_client(client_socket):
-    global g
-    try:
-        # 클라이언트로부터 데이터 수신 및 출력
-        data = client_socket.recv(1024)
-        print(f"수신: {data.decode()}")
 
-        # 클라이언트에게 응답 전송
-        response = str(g[-1].getpeername()) + "|"
-        client_socket.send(bytes(response.encode()))
-    except Exception as e:
-        print(f"에러: {e}")
-    finally:
-        # 소켓 닫기
-        print("끝")
-
-# 서버 소켓 생성
+# 소켓 생성
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind((server_ip, server_port))
-server_socket.listen(5)
 
-print(f"서버가 {server_ip}:{server_port}에서 시작되었습니다.")
+# 소켓을 주소와 포트에 바인딩
+server_socket.bind((host, port))
 
+# 클라이언트로부터 연결 대기
+server_socket.listen(4)  # 4개의 연결을 동시에 처리
+# server_file.write("서버가 {}:{}에서 실행 중입니다.\n".format(host, port))
+
+
+# 시간을 출력 형식에 맞게 변환
+def real_time(time):
+    minute = "{}".format(time // 60)
+    second = "{}".format(time % 60)
+    result = "{}:{}".format(minute.zfill(2), second.zfill(2))
+    # 예) 3초 => 00:03 / 100초 => 01:40
+    return result
+
+
+
+def client_handler(client_socket):
+    global system_clock, result_sum, count
+
+    
+
+
+# 클라이언트와 연결 수락
 while True:
-    # 클라이언트 연결 대기
     client_socket, client_address = server_socket.accept()
-    g.append(client_socket)
-
-    print(f"새로운 연결: {client_address}")
-
-    # 클라이언트를 처리하는 스레드 시작
-    client_thread = threading.Thread(target=handle_client, args=(client_socket,))
+    client_thread = threading.Thread(
+        target=client_handler, args=(client_socket)
+    )
     client_thread.start()
