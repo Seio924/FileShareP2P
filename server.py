@@ -21,17 +21,37 @@ def client_handler(client_socket, group, thread_num):
         try:
             data = client_socket.recv(1024).decode()
             print(data)
-            type, random_client, want_index = data.split("|") #원하는 클라이언트의 청크
-            if type == "Where_is": # 원하는 청크 갖고 있는 애 랜덤으로 고르자
-                c_list = []
-                for i in range(4): #모든 클라이언트가 가진 청크를 체크
-                    if len(client_chunks[i][int(random_client)-1]) > int(want_index): 
-                        #각 클라이언트가 원하는 클라이언트의 청크? 리스트 길이를 체크.
-                        #만약 4번째 청크(인덱스 3)를 갖고싶다 하면 그 리스트 길이가 4이상이어야 함.
-                        c_list.append(i+1)
 
-                choose_client = random.choice(c_list)
-                print(str(choose_client) + "번 클라이언트 선택")
+            data_split = data.split("?")
+            #Where_is?메시지
+            #Update_chunk_list?메시지
+
+            type = data_split.pop(0)
+
+            if type == "Update_chunk_list":
+                update_chunk_list = data_split.split("/")
+                update_chunk_list.pop(0)
+
+                for update_chunk in update_chunk_list:
+                    chunk_list_num, chunk_list_len = update_chunk.split("|")
+                    client_chunks[thread_num-1][int(chunk_list_num)] = int(chunk_list_len)
+            
+
+            elif type == "Where_is": # 원하는 청크 갖고 있는 애 랜덤으로 고르자
+                need_chunk_list = data_split.split("/")
+                need_chunk_list.pop(0)
+                
+                for need_chunk in need_chunk_list:
+                    file_num, chunk_num = need_chunk.split("|")
+                    target_client = 0
+
+                    #어떤 파일의 어떤 청크가 필요한지
+                    for client in range(4):
+                        if client_chunks[client][int(file_num)] >= int(chunk_num):
+                            target_client = client
+                            break
+                    
+                #여기부터 다시 코딩
 
                 #이 부분은 나중에 청크 가진 클라이언트 전부 보내줘야 하기 때문에 바꿔야함. 반복문으로 메시지에 추가
                 msg = client_ip[choose_client-1] + "|" + str(client_port[choose_client-1]) + "/" + want_index
@@ -55,8 +75,6 @@ if __name__ == '__main__':
     # 클라이언트가 들어오기 전에 해도 되는건지는 모르겠지만 일단 해놓음 (각 클라이언트가 가진 청크 초기)
     client_chunks = [[[] for _ in range(4)] for _ in range(4)]
 
-    for i in range(4):
-        client_chunks[i][i] = list(range(1954))
 
     # for i in range(4):
     #     print(client_chunks[i]) 

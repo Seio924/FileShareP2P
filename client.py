@@ -43,21 +43,15 @@ def peer_handler(client_socket, thread_num):
 
     while True:
         #파일 나누고 자신한테 없는 파일들 정보 서버에게 물어보기
-        #랜덤으로 클라이언트 고른다. 
-        #근데 여기서 내가 나를 고를수 있잖아 그럼 다시 골라야겠지
-        #그리고 순서대로 청크를 달라고 할거기때문에 길이를 가지고 원하는 청크 정한다.
-        while True:
-            random_client = random.randint(1, 4) 
-            if random_client != thread_num or len(update_chunks_list[random_client-1]) != 1954: 
-                # 내 스레드 번호랑 다르다면 멈춰 또는 내가 고른 랜덤 클라이언트로부터 청크를 다 받았다면 다시 뽑아야지
-                break
         
-        # 나중에 청크 더 받고 싶은거 없는 경우 추가해야 됨 (모든 청크 다 가짐)
+        msg = "Where_is?"
+        
+        # 4개의 청크 리스트 중에서 다 안채워진 리스트
+        for i in range(4):
+            need_chunk = len(update_chunks_list[i])
+            if need_chunk < 1954:
+                msg += "/" + str(i) + "|" + str(need_chunk)
 
-        #만약에 3번꺼를 원하는데 지금 청크 리스트에 3개가 있네? 그럼 4번째 청크를 받아야겠지?
-        want_index = len(update_chunks_list[random_client-1])
-
-        msg = "Where_is|" + str(random_client) + "|" + str(want_index)
         client_socket.send(msg.encode("utf-8")) #서버랑 소통
 
         # 연결할 클라이언트 ip랑 포트번호 받기
@@ -133,6 +127,12 @@ if __name__ == "__main__":
     update_chunks_list[int(thread_num)-1] = chunks_list
 
     #print(len(update_chunks_list[int(thread_num)-1]))
+    msg = "Update_chunk_list?"
+
+    for i in range(4):
+        msg += "/" + str(i) + "|" + str(len(update_chunks_list[i]))
+
+    client_socket.send(msg.encode("utf-8")) #서버랑 소통
 
     #아이피 주소와 포트번호로 다른 클라이언트가 들어오는걸 대기
     peer_sock.bind((my_ip, int(my_port)))
