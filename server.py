@@ -29,7 +29,8 @@ def client_handler(client_socket, group, thread_num):
                         break
                 print(str(target_num) + "번 클라이언트 선택")
 
-                msg = client_ip[target_num-1] + "|" + str(client_port[target_num-1])
+                #이 부분은 나중에 청크 가진 클라이언트 전부 보내줘야 하기 때문에 바꿔야함. 반복문으로 메시지에 추가
+                msg = client_ip[target_num-1] + "|" + str(client_port[target_num-1]) + "/"
                 client_socket.send(msg.encode("utf-8"))
                 
         except:
