@@ -2,17 +2,16 @@
 
 import socket
 import threading
-import random
 
 
 # 청크 업데이트 되는 리스트 검사해서 4개의 클라이언트가 청크를 다 받았다면 접속 종료하라고 메시지 보내주고 클라이언트 다 종료되면 서버 종료
 
 def client_handler(client_socket, group, thread_num):
-    global count, client_ip, client_port, client_chunks
+    global count, client_ip, client_port, client_chunks, update_all
 
     if count == 4:
         for i, client in enumerate(group):
-            msg = "All_Connected" + "|" + client_ip[i] + "|" + str(client_port[i]) + "|" + str(i+1)
+            msg = "All_Connected|" + client_ip[i] + "|" + str(i+1)
             client.send(msg.encode("utf-8"))
 
     print(1)
@@ -35,7 +34,15 @@ def client_handler(client_socket, group, thread_num):
                 for update_chunk in update_chunk_list:
                     chunk_list_num, chunk_list_len = update_chunk.split("|")
                     client_chunks[thread_num-1][int(chunk_list_num)] = int(chunk_list_len)
-            
+                
+                update_all += 1
+
+                if update_all == 4:
+                    update_all = 0
+                    for client in group:
+                        msg = "All_Updated"
+                        client.send(msg.encode("utf-8"))
+
 
             elif type == "Where_is": # 원하는 청크 갖고 있는 애 랜덤으로 고르자
                 need_chunk_list = data_split.split("/")
@@ -47,24 +54,22 @@ def client_handler(client_socket, group, thread_num):
                 for need_chunk in need_chunk_list:
                     file_num, chunk_num = need_chunk.split("|")
                     target_client = 0
-                    target_file_num = 0
 
                     #어떤 파일의 어떤 청크가 필요한지
+                    #더 가까운 곳에 있는 피어 고르는 거 구현
                     for client in range(4):
                         if client_chunks[client][int(file_num)] >= int(chunk_num):
                             target_client = client
-                            target_file_num = file_num
                             break
                     
                     #여기부터 다시 코딩
                     target_clients_list.append(target_client)
-                    target_file_num_list.append(target_file_num)
+                    target_file_num_list.append(file_num)
                 
                 msg = ""
                 for target_client, target_file_num in zip(target_clients_list, target_file_num_list):
-                    msg += "/" + client_ip[target_client] + "|" + str(client_port[target_file_num])
-                #이 부분은 나중에 청크 가진 클라이언트 전부 보내줘야 하기 때문에 바꿔야함. 반복문으로 메시지에 추가
-                msg = client_ip[choose_client-1] + "|" + str(client_port[choose_client-1]) + "/" + want_index
+                    msg += "/" + client_ip[target_client] + "|" + str(client_port[target_client]) + "|" + target_file_num
+                
                 client_socket.send(msg.encode("utf-8"))
 
         except:
@@ -76,6 +81,9 @@ if __name__ == '__main__':
     
     HOST = "0.0.0.0"  # 수신 받을 모든 IP를 의미
     PORT = 9000  # 수신받을 Port
+    client_port = [11111, 22222, 33333, 44444]
+
+
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # TCP Socket
     server_sock.bind((HOST, PORT))  # 소켓에 수신받을 IP주소와 PORT를 설정
     server_sock.listen(5)  # 소켓 연결, 여기서 파라미터는 접속수를 의미
@@ -91,6 +99,8 @@ if __name__ == '__main__':
  
     # 각 클라이언트가 보유한 청크 목록 (계속 업데이트 되어야 함)
     count = 0
+
+    update_all = 0
     
 
     while True:
@@ -115,5 +125,4 @@ if __name__ == '__main__':
             
         except:
             pass
-
 

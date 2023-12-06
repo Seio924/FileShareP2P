@@ -4,8 +4,22 @@ import socket
 import threading
 import time
 import os
+import hashlib
 
-# 청크 단위로 파일 쪼개기 (완)
+# 원본 파일 해시값
+def file_calculate_md5(file_path):
+    # 파일이 존재하는지 확인
+    if not os.path.exists(file_path):
+        print("파일이 존재하지 않습니다.")
+        return None
+
+    # 파일이 존재하면 MD5 해시값 계산
+    md5_hash = hashlib.md5()
+    with open(file_path, "rb") as file:
+        while chunk := file.read(8192):
+            md5_hash.update(chunk)
+
+    return md5_hash.hexdigest()
 
 #파일을 청크 단위로 나눠 리스트로 만들기 (청크 인덱스, 청크내용)
 def read_file_in_chunks(file_path, chunk_size=256 * 1024):
@@ -19,7 +33,17 @@ def read_file_in_chunks(file_path, chunk_size=256 * 1024):
             chunks_list.append((index, chunk))
             index += 1
         return chunks_list
-    
+
+
+# 문자열 또는 바이트열을 MD5 해시로 변환하는 함수 (청크를 합쳐서 해시값 확인)
+def calculate_md5(data):
+    if isinstance(data, str):
+        data = data.encode('utf-8')  # 문자열을 바이트열로 변환
+
+    md5_hash = hashlib.md5()
+    md5_hash.update(data)
+    return md5_hash.hexdigest()
+
 
 def receive_messages(peer_connection, thread_num): # 여기서 해당 클라이언트에게 청크 줘
     global chunks_list
@@ -39,24 +63,36 @@ def receive_messages(peer_connection, thread_num): # 여기서 해당 클라이�
     
 
 def peer_handler(client_socket, thread_num):
-    global update_chunks_list
+    global update_chunks_list, original_file_md5
     peer_connecting_sock = []
 
     while True:
+        print(1)
+        update_complete = client_socket.recv(1024).decode()
+        print(update_complete)
+        
         #파일 나누고 자신한테 없는 파일들 정보 서버에게 물어보기
         
         msg = "Where_is?"
         
-        compelete = 0
+        file_compelete = 0
         # 4개의 청크 리스트 중에서 다 안채워진 리스트
         for i in range(4):
             need_chunk = len(update_chunks_list[i])
             if need_chunk < 1954:
                 msg += "/" + str(i) + "|" + str(need_chunk)
             else:
-                compelete += 1
+                file_compelete += 1
 
-        if compelete == 4:
+        if file_compelete == 4:
+            i = 0
+            for chunks_list in update_chunks_list:
+                result_content = b''.join(chunk for index, chunk in chunks_list)
+                client_hash = calculate_md5(result_content)
+                if client_hash == original_file_md5[i]:
+                    i += 1
+            if i != 4:
+                print("해시값 오류")
             break
 
         client_socket.send(msg.encode("utf-8")) #서버랑 소통
@@ -65,14 +101,16 @@ def peer_handler(client_socket, thread_num):
         data = client_socket.recv(1024).decode()
         print(data)
 
-        target_client_list, want_index_recv = data.split("/")
-        
+        target_client_list = data.split("/")
+
+        target_client_list.pop(0)
+
         for peer_info in target_client_list:
-            target_ip, target_port = peer_info.split("|")
+            target_ip, target_port, want_index_recv = peer_info.split("|")
             # 소켓 생성
             peer_connecting_sock.append(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
 
-            time.sleep(2)
+            time.sleep(0.03)
             # 다른 클라이언트랑 연결
             peer_connecting_sock[-1].connect((target_ip, int(target_port)))
 
@@ -103,14 +141,20 @@ def peer_handler(client_socket, thread_num):
             time.sleep(0.01)
         peer_connecting_sock = []
 
+        msg = "Update_chunk_list?"
 
+        for i in range(4):
+            msg += "/" + str(i) + "|" + str(len(update_chunks_list[i]))
 
+        client_socket.send(msg.encode("utf-8")) #서버랑 소통
 
 if __name__ == "__main__":
     
     # 서버 포트 설정
     server_host = "localhost"
     server_port = 9000
+
+    client_port = [11111, 22222, 33333, 44444]
 
     # 소켓 생성
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -123,11 +167,18 @@ if __name__ == "__main__":
     print(data)
 
     #서버에게 내 아이피 주소와 포트번호를 받음
-    type, my_ip, my_port, thread_num = data.split("|")
+    type, my_ip, thread_num = data.split("|")
 
     #파일 불러와서 청크 단위로 쪼개서 리스트에 저장
     file_name = chr(int(thread_num) + 64)
     file_path = os.path.abspath(f'.\\file\\{file_name}.file')
+
+    # 모든 파일의 md5 값 저장해놓음
+    original_file_md5 = []
+    for i in range(4):
+        original_file_name = chr(i + 65)
+        original_file_path = os.path.abspath(f'.\\file\\{file_name}.file')
+        original_file_md5.append(file_calculate_md5(file_path)) # 원본 파일의 md5 값
 
     chunks_list = read_file_in_chunks(file_path, chunk_size=256 * 1024)
 
@@ -139,14 +190,14 @@ if __name__ == "__main__":
 
     #print(len(update_chunks_list[int(thread_num)-1]))
     msg = "Update_chunk_list?"
-
+    print(msg)
     for i in range(4):
         msg += "/" + str(i) + "|" + str(len(update_chunks_list[i]))
 
     client_socket.send(msg.encode("utf-8")) #서버랑 소통
 
     #아이피 주소와 포트번호로 다른 클라이언트가 들어오는걸 대기
-    peer_sock.bind((my_ip, int(my_port)))
+    peer_sock.bind((my_ip, client_port[int(thread_num)-1]))
     peer_sock.listen(4)
 
 
