@@ -40,19 +40,29 @@ def client_handler(client_socket, group, thread_num):
             elif type == "Where_is": # 원하는 청크 갖고 있는 애 랜덤으로 고르자
                 need_chunk_list = data_split.split("/")
                 need_chunk_list.pop(0)
+
+                target_clients_list = []
+                target_file_num_list = []
                 
                 for need_chunk in need_chunk_list:
                     file_num, chunk_num = need_chunk.split("|")
                     target_client = 0
+                    target_file_num = 0
 
                     #어떤 파일의 어떤 청크가 필요한지
                     for client in range(4):
                         if client_chunks[client][int(file_num)] >= int(chunk_num):
                             target_client = client
+                            target_file_num = file_num
                             break
                     
-                #여기부터 다시 코딩
-
+                    #여기부터 다시 코딩
+                    target_clients_list.append(target_client)
+                    target_file_num_list.append(target_file_num)
+                
+                msg = ""
+                for target_client, target_file_num in zip(target_clients_list, target_file_num_list):
+                    msg += "/" + client_ip[target_client] + "|" + str(client_port[target_file_num])
                 #이 부분은 나중에 청크 가진 클라이언트 전부 보내줘야 하기 때문에 바꿔야함. 반복문으로 메시지에 추가
                 msg = client_ip[choose_client-1] + "|" + str(client_port[choose_client-1]) + "/" + want_index
                 client_socket.send(msg.encode("utf-8"))

@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
+
 import socket
 import threading
-import random
 import time
 import os
 
@@ -46,11 +47,17 @@ def peer_handler(client_socket, thread_num):
         
         msg = "Where_is?"
         
+        compelete = 0
         # 4개의 청크 리스트 중에서 다 안채워진 리스트
         for i in range(4):
             need_chunk = len(update_chunks_list[i])
             if need_chunk < 1954:
                 msg += "/" + str(i) + "|" + str(need_chunk)
+            else:
+                compelete += 1
+
+        if compelete == 4:
+            break
 
         client_socket.send(msg.encode("utf-8")) #서버랑 소통
 
@@ -59,6 +66,7 @@ def peer_handler(client_socket, thread_num):
         print(data)
 
         target_client_list, want_index_recv = data.split("/")
+        
         for peer_info in target_client_list:
             target_ip, target_port = peer_info.split("|")
             # 소켓 생성
