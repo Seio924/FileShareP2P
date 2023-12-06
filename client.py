@@ -65,10 +65,12 @@ def peer_handler(client_socket, thread_num):
         data = client_socket.recv(1024).decode()
         print(data)
 
-        target_client_list, want_index_recv = data.split("/")
-        
+        target_client_list = data.split("/")
+
+        target_client_list.pop(0)
+
         for peer_info in target_client_list:
-            target_ip, target_port = peer_info.split("|")
+            target_ip, target_port, want_index_recv = peer_info.split("|")
             # 소켓 생성
             peer_connecting_sock.append(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
 
