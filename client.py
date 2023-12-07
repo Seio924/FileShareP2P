@@ -25,7 +25,7 @@ def file_calculate_md5(file_path):
     return md5_hash.hexdigest()
 
 #파일을 청크 단위로 나눠 리스트로 만들기 (청크 인덱스, 청크내용)
-def read_file_in_chunks(file_path, chunk_size=256 * 1000):
+def read_file_in_chunks(file_path, chunk_size=256 * 1024):
     with open(file_path, 'rb') as file:
         chunks_list = []
         while True:
@@ -49,7 +49,7 @@ def calculate_md5(data):
 def receive_messages(peer_connection): # 여기서 해당 클라이언트에게 청크 줘
     global chunks_list, update_chunks_list
 
-    data = peer_connection.recv(256 * 1000).decode('utf-8')
+    data = peer_connection.recv(256 * 1024).decode('utf-8')
     want_file_recv, want_chunk_recv = data.split("|")
     
     # 파일 보내주기
@@ -79,7 +79,7 @@ def peer_handler(client_socket):
             # 4개의 청크 리스트 중에서 다 안채워진 리스트
             for i in range(4): 
                 need_chunk = len(update_chunks_list[i])
-                if need_chunk < 2000:
+                if need_chunk < 1954:
                     msg += "/" + str(i) + "|" + str(need_chunk)
                 else:
                     file_compelete += 1
@@ -87,13 +87,14 @@ def peer_handler(client_socket):
             if file_compelete == 4:
                 i = 0
                 for chunks_list in update_chunks_list:
-                    result_content = b''.join(chunk for index, chunk in chunks_list)
+                    result_content = b''.join(chunk for chunk in chunks_list)
                     client_hash = calculate_md5(result_content)
                     if client_hash == original_file_md5[i]:
                         i += 1
                 if i != 4:
                     print("해시값 오류")
                 break
+            
             print(4)
             print(msg)
             client_socket.sendall(msg.encode("utf-8")) #서버랑 소통
@@ -130,7 +131,7 @@ def peer_handler(client_socket):
                 print(11)
                 peer_file_num = peer_connecting_sock[i].recv(1).decode('utf-8') # 쓰레드 번호 청크
                 print(12)
-                peer_data = peer_connecting_sock[i].recv(256*1000) # 쓰레드 번호 청크
+                peer_data = peer_connecting_sock[i].recv(256*1024) # 쓰레드 번호 청크
 
 
 
@@ -196,7 +197,7 @@ if __name__ == "__main__":
         original_file_path = os.path.abspath(f'.\\file\\{file_name}.file')
         original_file_md5.append(file_calculate_md5(file_path)) # 원본 파일의 md5 값
 
-    chunks_list = read_file_in_chunks(file_path, chunk_size=256 * 1000)
+    chunks_list = read_file_in_chunks(file_path, chunk_size=256 * 1024)
     #client_file.write("{} [client {}] 청크를 제공합니다.\n")
     #client_file.write()
     int(len(chunks_list)) #1954개? 나옴
