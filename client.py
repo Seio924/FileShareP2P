@@ -73,6 +73,8 @@ def peer_handler(client_socket):
             if file_compelete == 4:
                 print("업데이트 완료")
                 i = 0
+                client_file.write("소요시간 : {:.2f} msec".format(result_time))
+                #client_socket.send(str(result_time).encode("utf-8"))
                 for chunks_list in update_chunks_list:
                     result_content = b''.join(chunk for chunk in chunks_list)
                     client_hash = calculate_md5(result_content)
@@ -84,7 +86,7 @@ def peer_handler(client_socket):
                 break
             
             client_socket.sendall(msg.encode("utf-8")) #서버랑 소통
-
+    
             # 연결할 클라이언트 ip랑 포트번호 받기
             data = client_socket.recv(1024).decode()
 
@@ -103,7 +105,7 @@ def peer_handler(client_socket):
                 # 다른 클라이언트랑 연결
                 peer_connecting_sock[-1].connect((target_ip, client_port[int(target_port)]))
                 peer_msg = want_file_recv + "|" + want_chunk_recv
-
+                time.sleep(0.01)
                 peer_connecting_sock[-1].sendall(peer_msg.encode("utf-8")) # 다른 피어랑 소통
 
                 # time time
@@ -149,9 +151,7 @@ def peer_handler(client_socket):
             client_socket.sendall(msg.encode("utf-8")) #서버랑 소통
 
     
-    client_socket.close()
-    client_file.write("서버 연결 종료\n")
-    client_file.close()
+    
 
 if __name__ == "__main__":
     

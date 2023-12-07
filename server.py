@@ -4,7 +4,6 @@ import socket
 import threading
 import random
 import time
-import math
 
 # 스레딩 동기화를 위한 Lock 객체 생성
 lock = threading.Lock()
@@ -12,7 +11,7 @@ lock = threading.Lock()
 # 청크 업데이트 되는 리스트 검사해서 4개의 클라이언트가 청크를 다 받았다면 접속 종료하라고 메시지 보내주고 클라이언트 다 종료되면 서버 종료
 
 def client_handler(client_socket, group, thread_num):
-    global count, client_ip, client_port, client_chunks, update_client_list, result_time, start
+    global count, client_ip, client_port, client_chunks, update_client_list, result_time, start, total_time
 
     if count == 4:
         for i, client in enumerate(group):
@@ -50,12 +49,17 @@ def client_handler(client_socket, group, thread_num):
                         server_file.write("{:.2f} [server] '클라이언트 {}'의 {}번 파일 : {}/1954 \n".format(result_time, thread_num, chunk_list_num, chunk_list_len))
                     server_file.write("\n")
                     if len(update_client_list) == 0:
+                        
                         print("업데이트 완료")
                         update_client_list = [1, 2, 3, 4]
                         update_msg = "Update_Complete"
                         for c_all_send in group:
                             c_all_send.send(update_msg.encode("utf-8"))
-                        break
+                        #client_time = client_socket.recv(1024).decode()
+                        #total_time += (client_time)
+                        #server_file.write("총 소요시간 : {:.2f}msec\n".format(total_time))
+                        
+
 
 
                 elif type_name == "Where_is": # 원하는 청크 갖고 있는 애 랜덤으로 고르자
@@ -107,9 +111,7 @@ def client_handler(client_socket, group, thread_num):
 
         except:
             pass
-    server_sock.close()
-    server_file.write("서버 종료")
-    server_file.close()
+
     
 
 if __name__ == '__main__':
@@ -117,7 +119,7 @@ if __name__ == '__main__':
     HOST = "0.0.0.0"  # 수신 받을 모든 IP를 의미
     PORT = 9000  # 수신받을 Port
     result_time = 0.0
-
+    total_time = 0.0
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # TCP Socket
     server_sock.bind((HOST, PORT))  # 소켓에 수신받을 IP주소와 PORT를 설정
     server_sock.listen(4)  # 소켓 연결, 여기서 파라미터는 접속수를 의미
@@ -127,7 +129,7 @@ if __name__ == '__main__':
     group, client_ip, client_port = [], [], []
     server_file.write("서버가 {}:{} 에서 실행\n".format(HOST, PORT))
     start = time.time()
-    math.factorial(100000)
+
     # 클라이언트가 들어오기 전에 해도 되는건지는 모르겠지만 일단 해놓음 (각 클라이언트가 가진 청크 초기)
     client_chunks = [[[] for _ in range(4)] for _ in range(4)]
     update_client_list = [1, 2, 3, 4]
