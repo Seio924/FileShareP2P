@@ -87,9 +87,13 @@ def peer_handler(client_socket):
             if file_compelete == 4:
                 i = 0
                 for chunks_list in update_chunks_list:
+                    print(len(chunks_list))
                     result_content = b''.join(chunk for chunk in chunks_list)
                     client_hash = calculate_md5(result_content)
+                    print("야야야야야야야야야야")
                     if client_hash == original_file_md5[i]:
+                        print("client_hash : " + client_hash)
+                        print("original : " + original_file_md5[i])
                         i += 1
                 if i != 4:
                     print("해시값 오류")
