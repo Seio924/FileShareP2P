@@ -149,9 +149,9 @@ def peer_handler(client_socket):
             client_socket.sendall(msg.encode("utf-8")) #서버랑 소통
 
     
-    client_socket.close()
-    client_file.write("서버 연결 종료\n")
-    client_file.close()
+    # client_socket.close()
+    # client_file.write("서버 연결 종료\n")
+    # client_file.close()
 
 if __name__ == "__main__":
     

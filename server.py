@@ -55,7 +55,7 @@ def client_handler(client_socket, group, thread_num):
                         update_msg = "Update_Complete"
                         for c_all_send in group:
                             c_all_send.send(update_msg.encode("utf-8"))
-                        break
+                        #break
 
 
                 elif type_name == "Where_is": # 원하는 청크 갖고 있는 애 랜덤으로 고르자
@@ -107,9 +107,9 @@ def client_handler(client_socket, group, thread_num):
 
         except:
             pass
-    server_sock.close()
-    server_file.write("서버 종료")
-    server_file.close()
+    # server_sock.close()
+    # server_file.write("서버 종료")
+    # server_file.close()
     
 
 if __name__ == '__main__':
