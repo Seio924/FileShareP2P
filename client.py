@@ -68,91 +68,96 @@ def peer_handler(client_socket):
     print(1)
 
     while True:
-        #파일 나누고 자신한테 없는 파일들 정보 서버에게 물어보기
-        
-        msg = "Where_is?"
-        print(2)
-        file_compelete = 0
-        # 4개의 청크 리스트 중에서 다 안채워진 리스트
-        for i in range(4): 
-            need_chunk = len(update_chunks_list[i])
-            if need_chunk < 2000:
-                msg += "/" + str(i) + "|" + str(need_chunk)
-            else:
-                file_compelete += 1
-        print(3)
-        if file_compelete == 4:
-            i = 0
-            for chunks_list in update_chunks_list:
-                result_content = b''.join(chunk for index, chunk in chunks_list)
-                client_hash = calculate_md5(result_content)
-                if client_hash == original_file_md5[i]:
-                    i += 1
-            if i != 4:
-                print("해시값 오류")
-            break
-        print(4)
-        client_socket.sendall(msg.encode("utf-8")) #서버랑 소통
-        print(5)
-        # 연결할 클라이언트 ip랑 포트번호 받기
-        data = client_socket.recv(256 * 1000).decode()
-        print(6)
+        update_msg = client_socket.recv(1024).decode()
 
-        target_client_list = data.split("/")
+        if update_msg == "Update_Complete":            
+            #파일 나누고 자신한테 없는 파일들 정보 서버에게 물어보기
+            
+            msg = "Where_is?"
+            print(2)
+            file_compelete = 0
+            # 4개의 청크 리스트 중에서 다 안채워진 리스트
+            for i in range(4): 
+                need_chunk = len(update_chunks_list[i])
+                if need_chunk < 2000:
+                    msg += "/" + str(i) + "|" + str(need_chunk)
+                else:
+                    file_compelete += 1
+            print(3)
+            if file_compelete == 4:
+                i = 0
+                for chunks_list in update_chunks_list:
+                    result_content = b''.join(chunk for index, chunk in chunks_list)
+                    client_hash = calculate_md5(result_content)
+                    if client_hash == original_file_md5[i]:
+                        i += 1
+                if i != 4:
+                    print("해시값 오류")
+                break
+            print(4)
+            print(msg)
+            client_socket.sendall(msg.encode("utf-8")) #서버랑 소통
+            print(5)
+            # 연결할 클라이언트 ip랑 포트번호 받기
+            data = client_socket.recv(1024).decode()
+            print(6)
 
-        target_client_list.pop(0)
-        print(7)
+            target_client_list = data.split("/")
 
-        for peer_info in target_client_list:
-            print(8)
-            target_ip, target_port, want_file_recv, want_chunk_recv = peer_info.split("|")
-            # 소켓 생성
-            print(target_port)
-            peer_connecting_sock.append(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
+            target_client_list.pop(0)
+            print(7)
 
-            time.sleep(0.03)
-            # 다른 클라이언트랑 연결
-            peer_connecting_sock[-1].connect((target_ip, client_port[int(target_port)]))
-            print(9)
-            peer_msg = want_file_recv + "|" + want_chunk_recv 
-            #client_file.write("{} [client {}] {} 번 파일의 청크를 요청했습니다.\n".format(system_clock_formating, want_file_recv, want_chunk_recv))
-            peer_connecting_sock[-1].sendall(peer_msg.encode("utf-8")) # 다른 피어랑 소통
-        
-        print(10)
-        for i in range(len(target_client_list)):
+            for peer_info in target_client_list:
+                print(8)
+                target_ip, target_port, want_file_recv, want_chunk_recv = peer_info.split("|")
+                # 소켓 생성
+                print(target_port)
+                peer_connecting_sock.append(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
 
-            # 다른 클라이언트에게 파일 받기
-            # 여기도 for문으로 데이터 받고 for문 안에서 파일 업데이트 실시
-            print(11)
-            peer_file_num = peer_connecting_sock[i].recv(1).decode('utf-8') # 쓰레드 번호 청크
-            print(12)
-            peer_data = peer_connecting_sock[i].recv(256*1000) # 쓰레드 번호 청크
+                #time.sleep(0.03)
+                # 다른 클라이언트랑 연결
+                peer_connecting_sock[-1].connect((target_ip, client_port[int(target_port)]))
+                print(9)
+                peer_msg = want_file_recv + "|" + want_chunk_recv 
+                #client_file.write("{} [client {}] {} 번 파일의 청크를 요청했습니다.\n".format(system_clock_formating, want_file_recv, want_chunk_recv))
+                peer_connecting_sock[-1].sendall(peer_msg.encode("utf-8")) # 다른 피어랑 소통
+            
+            print(10)
+            for i in range(len(target_client_list)):
+
+                # 다른 클라이언트에게 파일 받기
+                # 여기도 for문으로 데이터 받고 for문 안에서 파일 업데이트 실시
+                print(11)
+                peer_file_num = peer_connecting_sock[i].recv(1).decode('utf-8') # 쓰레드 번호 청크
+                print(12)
+                peer_data = peer_connecting_sock[i].recv(256*1000) # 쓰레드 번호 청크
 
 
 
-            # 여기서 (1300, djf;lfj;jfdjfkajfdjaf;jdk) 이런식으로 옴
-            # 해당 청크리스트의 클라이언트 인덱스에 차례대로 청크값만 저장
-            # 예를 들어, 클라이언트1의 128번째 청크 > update_chunks_list[0][127]
-            print(13)
-            print(peer_file_num + "파일 번호")
-            update_chunks_list[int(peer_file_num)-1].append(peer_data)
-            print(len(update_chunks_list[int(peer_file_num)-1]))
-            time.sleep(0.02)
-            print(14)
-            #연결했던 클라이언트와 연결 끊기
-            peer_connecting_sock[i].close()
-            print(15)
-            print("연결 끊음")
-            time.sleep(0.01)
-        peer_connecting_sock = []
-        print(16)
+                # 여기서 (1300, djf;lfj;jfdjfkajfdjaf;jdk) 이런식으로 옴
+                # 해당 청크리스트의 클라이언트 인덱스에 차례대로 청크값만 저장
+                # 예를 들어, 클라이언트1의 128번째 청크 > update_chunks_list[0][127]
+                print(13)
+                print(peer_file_num + "파일 번호")
+                update_chunks_list[int(peer_file_num)].append(peer_data)
 
-        msg = "Update_chunk_list?"
+                #time.sleep(0.02)
+                print(14)
+                #연결했던 클라이언트와 연결 끊기
+                peer_connecting_sock[i].close()
+                print(15)
+                print("연결 끊음")
+                #time.sleep(0.01)
+            peer_connecting_sock = []
+            print(16)
 
-        for i in range(4):
-            msg += "/" + str(i) + "|" + str(len(update_chunks_list[i]))
-        print(17)
-        client_socket.sendall(msg.encode("utf-8")) #서버랑 소통
+            msg = "Update_chunk_list?"
+
+            for i in range(4):
+                msg += "/" + str(i) + "|" + str(len(update_chunks_list[i]))
+                print(str(i) + " 길이 : " + str(len(update_chunks_list[i])))
+            print(17)
+            client_socket.sendall(msg.encode("utf-8")) #서버랑 소통
 
 if __name__ == "__main__":
     
