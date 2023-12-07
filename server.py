@@ -56,55 +56,56 @@ def client_handler(client_socket, group, thread_num):
 
 
                 elif type_name == "Where_is": # 원하는 청크 갖고 있는 애 랜덤으로 고르자
-                    print("데이터 줘")
-                    print(data_split)
-                    need_chunk_list = data_split[0].split("/")
-                    need_chunk_list.pop(0)
+                    with lock:
+                        print("데이터 줘")
+                        print(data_split)
+                        need_chunk_list = data_split[0].split("/")
+                        need_chunk_list.pop(0)
 
 
-                    target_clients_list = []
-                    target_file_num_list = []
-                    target_chunk_num_list = [] 
-                    
-                    for need_chunk in need_chunk_list:
-                        file_num, chunk_num = need_chunk.split("|")
-                        target_client = 0
-                        target_able = []
-
-                        #어떤 파일의 어떤 청크가 필요한지
-                        #더 가까운 곳에 있는 피어 고르는 거 구현
-                        for client in range(4):
-                            if client_chunks[client][int(file_num)] > int(chunk_num):
-                                target_able.append(client)
-
-                        print("파일 넘버: " + file_num)
+                        target_clients_list = []
+                        target_file_num_list = []
+                        target_chunk_num_list = [] 
                         
-                        for t in target_able:
-                            if client_ip[t] == client_ip[thread_num-1]:
-                                target_client = t
-                                break
+                        for need_chunk in need_chunk_list:
+                            file_num, chunk_num = need_chunk.split("|")
+                            target_client = 0
+                            target_able = []
+
+                            #어떤 파일의 어떤 청크가 필요한지
+                            #더 가까운 곳에 있는 피어 고르는 거 구현
+                            for client in range(4):
+                                if client_chunks[client][int(file_num)] > int(chunk_num):
+                                    target_able.append(client)
+
+                            print("파일 넘버: " + file_num)
+                            
+                            for t in target_able:
+                                if client_ip[t] == client_ip[thread_num-1]:
+                                    target_client = t
+                                    break
+                            
+                            if target_client == 0:
+                                target_client = random.choice(target_able)
+                            
+
+                            print(str(thread_num) + "번 클라이언트의 " + file_num + "번 파일 요청 : 선택 - " + str(target_client+1))
+                            #server_file.write("{} [server] ' 클라이언트 {} ' (이)가 {}번 파일을 요청했습니다. > 선택된 클라이언트 [ {} ]\n".format(system_clock_formating, file_num, str(target_client+1)))                    
+                            target_clients_list.append(target_client)
+                            target_file_num_list.append(file_num)
+                            target_chunk_num_list.append(chunk_num)
+
+                            #time.sleep(0.3)
+
                         
-                        if target_client == 0:
-                            target_client = random.choice(target_able)
+                        print(target_clients_list)
+                        print(target_file_num_list)
+                        print(target_chunk_num_list)
+                        msg = ""
+                        for target_client, target_file_num, chunk_num in zip(target_clients_list, target_file_num_list, target_chunk_num_list):
+                            msg += "/" + client_ip[target_client] + "|" + str(target_client) + "|" + target_file_num + "|" + chunk_num
                         
-
-                        print(str(thread_num) + "번 클라이언트의 " + file_num + "번 파일 요청 : 선택 - " + str(target_client+1))
-                        #server_file.write("{} [server] ' 클라이언트 {} ' (이)가 {}번 파일을 요청했습니다. > 선택된 클라이언트 [ {} ]\n".format(system_clock_formating, file_num, str(target_client+1)))                    
-                        target_clients_list.append(target_client)
-                        target_file_num_list.append(file_num)
-                        target_chunk_num_list.append(chunk_num)
-
-                        #time.sleep(0.3)
-
-                    
-                    print(target_clients_list)
-                    print(target_file_num_list)
-                    print(target_chunk_num_list)
-                    msg = ""
-                    for target_client, target_file_num, chunk_num in zip(target_clients_list, target_file_num_list, target_chunk_num_list):
-                        msg += "/" + client_ip[target_client] + "|" + str(target_client) + "|" + target_file_num + "|" + chunk_num
-                    
-                    client_socket.send(msg.encode("utf-8"))
+                        client_socket.send(msg.encode("utf-8"))
 
         except:
             pass
