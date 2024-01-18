@@ -1,8 +1,4 @@
-# FileShareP2P
+# G9HW1
 
-# test
-
-# Hello
-
-# 다들 고생했어
-
+## 프로젝트명
+P2P 방식 파일공유 시스템 구현
